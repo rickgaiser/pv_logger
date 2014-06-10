@@ -4,9 +4,7 @@ from time import localtime, strftime
 import threading
 import subprocess
 import logging
-
-
-from elogger_config import *
+from config import *
 
 
 time_last_pulse = 0
@@ -34,11 +32,6 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 logger.info('Started')
-
-# Setup raspberry pi gpio input event handler
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(23, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO.add_event_detect(23, GPIO.RISING, callback=printRising, bouncetime=300)
 
 
 def printRising(channel):
@@ -70,24 +63,30 @@ def printRising(channel):
 	return
 
 
+# Setup raspberry pi gpio input event handler
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(23, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.add_event_detect(23, GPIO.RISING, callback=printRising, bouncetime=300)
+
+# Start main loop
 time_last_log = time.time()
 pulse_counter_logged = 0
 while True:
 	cond.acquire()
 	cond.wait(5)
-	time = time.time()
+	event_time = time.time()
 	# Log if:
 	# - There is new energy data
 	# - The time is a multiple of 5 minutes
 	# - At least 1 minutes have passed
-	if (pulse_counter > pulse_counter_logged) and ((time.localtime(time).tm_min % 5) == 0) and ((time - time_last_log) > (1*60)):
+	if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
 		pulse_counter_logged = pulse_counter
 		time_last_pulse_logged = time_last_pulse
 		power_max_logged = power_max
 		power_max = 0
 		cond.release()
 
-		time_last_log = time
+		time_last_log = event_time
 
 		# Log to PVOutput
 		t_date   = 'd={0}'.format(time.strftime("%Y%m%d", time.localtime(time_last_pulse_logged)))
