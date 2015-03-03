@@ -1,6 +1,6 @@
-import drv_sim
+#import drv_sim
 #import drv_rpi
-#import drv_nrf24l01
+import drv_nrf24l01
 import time
 from time import localtime, strftime
 import threading
@@ -34,9 +34,9 @@ logger.info('Started')
 
 # Start pulse driver
 pulse_ev = threading.Event()
-drv = drv_sim.CPulseDriver(pulse_ev)
+#drv = drv_sim.CPulseDriver(pulse_ev)
 #drv = drv_rpi.CPulseDriver(pulse_ev)
-#drv = drv_nrf24l01.CPulseDriver(pulse_ev)
+drv = drv_nrf24l01.CPulseDriver(pulse_ev)
 
 # Start main loop
 time_last_log = time.time()
