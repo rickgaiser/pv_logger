@@ -40,6 +40,7 @@ drv = drv_nrf24l01.CPulseDriver(pulse_ev)
 
 # Start main loop
 time_last_log = time.time()
+event_time = 0
 while True:
 	if pulse_ev.wait(1) == True:
 		pulse_ev.clear()
@@ -57,42 +58,42 @@ while True:
 		else:
 			logger.info("{0}Wh".format(pulse_counter))
 
-		# Log if:
-		# - There is new energy data
-		# - The time is a multiple of 5 minutes
-		# - At least 1 minutes have passed
-		if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
-			pulse_counter_logged = pulse_counter
-			time_last_pulse_logged = time_last_pulse
-			power_max_logged = power_max
-			power_max = 0
+	# Log if:
+	# - There is new energy data
+	# - The time is a multiple of 5 minutes
+	# - At least 1 minutes have passed
+	if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
+		pulse_counter_logged = pulse_counter
+		time_last_pulse_logged = time_last_pulse
+		power_max_logged = power_max
+		power_max = 0
 
-			time_last_log = event_time
+		time_last_log = event_time
 
-			# Log to PVOutput
-			t_date   = 'd={0}'.format(time.strftime("%Y%m%d", time.localtime(time_last_pulse_logged)))
-			t_time   = 't={0}'.format(time.strftime("%H:%M",  time.localtime(time_last_pulse_logged)))
-			t_energy = 'v1={0}'.format(pulse_counter_logged)
-			t_power  = 'v2={0:.0f}'.format(power_max_logged)
-			cmd = ['/usr/bin/curl',
-				'-d', t_date,
-				'-d', t_time,
-				'-d', t_energy,
-				'-d', t_power,
-				'-H', 'X-Pvoutput-Apikey: ' + PVOUTPUT_APIKEY,
-				'-H', 'X-Pvoutput-SystemId: ' + PVOUTPUT_SYSTEMID,
-				'http://pvoutput.org/service/r1/addstatus.jsp']
-			subprocess.call (cmd)
-			logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max_logged))
+		# Log to PVOutput
+		t_date   = 'd={0}'.format(time.strftime("%Y%m%d", time.localtime(time_last_pulse_logged)))
+		t_time   = 't={0}'.format(time.strftime("%H:%M",  time.localtime(time_last_pulse_logged)))
+		t_energy = 'v1={0}'.format(pulse_counter_logged)
+		t_power  = 'v2={0:.0f}'.format(power_max_logged)
+		cmd = ['/usr/bin/curl',
+			'-d', t_date,
+			'-d', t_time,
+			'-d', t_energy,
+			'-d', t_power,
+			'-H', 'X-Pvoutput-Apikey: ' + PVOUTPUT_APIKEY,
+			'-H', 'X-Pvoutput-SystemId: ' + PVOUTPUT_SYSTEMID,
+			'http://pvoutput.org/service/r1/addstatus.jsp']
+		subprocess.call (cmd)
+		logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max_logged))
 
-		# End of day if:
-		# - No enery for more than 1 hour
-		if (pulse_counter > 0) and ((event_time - time_last_log) > (60*60)):
-			pulse_counter = 0
-			pulse_counter_logged = 0
-			time_prev_pulse = 0
-			time_last_pulse = 0
-			logger.info('END OF DAY')
+	# End of day if:
+	# - No enery for more than 1 hour
+	if (pulse_counter > 0) and ((event_time - time_last_log) > (60*60)):
+		pulse_counter = 0
+		pulse_counter_logged = 0
+		time_prev_pulse = 0
+		time_last_pulse = 0
+		logger.info('END OF DAY')
 
 # Stop pulse driver
 drv.stop()
