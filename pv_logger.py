@@ -38,6 +38,22 @@ pulse_ev = threading.Event()
 #drv = drv_rpi.CPulseDriver(pulse_ev)
 drv = drv_nrf24l01.CPulseDriver(pulse_ev)
 
+# Write to PVOutput.org
+def WriteToPVOutput(dt, wh, wmax):
+	t_date   = 'd={0}'.format(time.strftime("%Y%m%d", time.localtime(dt)))
+	t_time   = 't={0}'.format(time.strftime("%H:%M",  time.localtime(dt)))
+	t_energy = 'v1={0}'.format(wh)
+	t_power  = 'v2={0:.0f}'.format(wmax)
+	cmd = ['/usr/bin/curl',
+		'-d', t_date,
+		'-d', t_time,
+		'-d', t_energy,
+		'-d', t_power,
+		'-H', 'X-Pvoutput-Apikey: ' + PVOUTPUT_APIKEY,
+		'-H', 'X-Pvoutput-SystemId: ' + PVOUTPUT_SYSTEMID,
+		'http://pvoutput.org/service/r1/addstatus.jsp']
+	subprocess.call (cmd)
+
 # Start main loop
 time_last_log = time.time()
 while True:
@@ -63,28 +79,12 @@ while True:
 	# - The time is a multiple of 5 minutes
 	# - At least 1 minutes have passed
 	if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
+		WriteToPVOutput(time_last_pulse, pulse_counter_logged, power_max)
+		logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max))
+
 		pulse_counter_logged = pulse_counter
-		time_last_pulse_logged = time_last_pulse
-		power_max_logged = power_max
 		power_max = 0
-
 		time_last_log = event_time
-
-		# Log to PVOutput
-		t_date   = 'd={0}'.format(time.strftime("%Y%m%d", time.localtime(time_last_pulse_logged)))
-		t_time   = 't={0}'.format(time.strftime("%H:%M",  time.localtime(time_last_pulse_logged)))
-		t_energy = 'v1={0}'.format(pulse_counter_logged)
-		t_power  = 'v2={0:.0f}'.format(power_max_logged)
-		cmd = ['/usr/bin/curl',
-			'-d', t_date,
-			'-d', t_time,
-			'-d', t_energy,
-			'-d', t_power,
-			'-H', 'X-Pvoutput-Apikey: ' + PVOUTPUT_APIKEY,
-			'-H', 'X-Pvoutput-SystemId: ' + PVOUTPUT_SYSTEMID,
-			'http://pvoutput.org/service/r1/addstatus.jsp']
-		subprocess.call (cmd)
-		logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max_logged))
 
 	# End of day if:
 	# - No enery for more than 1 hour
