@@ -3,6 +3,7 @@
 import drv_nrf24l01
 import time
 from time import localtime, strftime
+import thread
 import threading
 import subprocess
 import logging
@@ -56,44 +57,50 @@ def WriteToPVOutput(dt, wh, wmax):
 
 # Start main loop
 time_last_log = time.time()
-while True:
-	event = pulse_ev.wait(1)
-	event_time = time.time()
-	if event == True:
-		pulse_ev.clear()
+exitFlag = False
+while not exitFlag:
+	try:
+		event = pulse_ev.wait(1)
+		event_time = time.time()
+		if event == True:
+			pulse_ev.clear()
 
-		time_prev_pulse = time_last_pulse
-		time_last_pulse = event_time
-		pulse_counter += 1
-		if time_prev_pulse != 0:
-			time_elapsed = time_last_pulse - time_prev_pulse
-			power = (3600 / time_elapsed)
-			if power > power_max:
-				power_max = power
-			logger.info("{0}Wh: {1:.2f}sec = {2:.0f}Watt".format(pulse_counter, time_elapsed, power))
-		else:
-			logger.info("{0}Wh".format(pulse_counter))
+			time_prev_pulse = time_last_pulse
+			time_last_pulse = event_time
+			pulse_counter += 1
+			if time_prev_pulse != 0:
+				time_elapsed = time_last_pulse - time_prev_pulse
+				power = (3600 / time_elapsed)
+				if power > power_max:
+					power_max = power
+				logger.info("{0}Wh: {1:.2f}sec = {2:.0f}Watt".format(pulse_counter, time_elapsed, power))
+			else:
+				logger.info("{0}Wh".format(pulse_counter))
 
-	# Log if:
-	# - There is new energy data
-	# - The time is a multiple of 5 minutes
-	# - At least 1 minutes have passed
-	if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
-		WriteToPVOutput(time_last_pulse, pulse_counter_logged, power_max)
-		logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max))
+		# Log if:
+		# - There is new energy data
+		# - The time is a multiple of 5 minutes
+		# - At least 1 minutes have passed
+		if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
+			thread.start_new_thread(WriteToPVOutput, (time_last_pulse, pulse_counter_logged, power_max))
+			logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max))
 
-		pulse_counter_logged = pulse_counter
-		power_max = 0
-		time_last_log = event_time
+			pulse_counter_logged = pulse_counter
+			power_max = 0
+			time_last_log = event_time
 
-	# End of day if:
-	# - No enery for more than 1 hour
-	if (pulse_counter > 0) and ((event_time - time_last_log) > (60*60)):
-		pulse_counter = 0
-		pulse_counter_logged = 0
-		time_prev_pulse = 0
-		time_last_pulse = 0
-		logger.info('END OF DAY')
+		# End of day if:
+		# - No enery for more than 1 hour
+		if (pulse_counter > 0) and ((event_time - time_last_log) > (60*60)):
+			pulse_counter = 0
+			pulse_counter_logged = 0
+			time_prev_pulse = 0
+			time_last_pulse = 0
+			logger.info('END OF DAY')
+
+	except KeyboardInterrupt:
+		logger.info('Stopping')
+		exitFlag = True
 
 # Stop pulse driver
 drv.stop()
