@@ -51,7 +51,7 @@ def WriteToPVOutput(dt, wh, wmax):
 		'-d', t_power,
 		'-H', 'X-Pvoutput-Apikey: ' + PVOUTPUT_APIKEY,
 		'-H', 'X-Pvoutput-SystemId: ' + PVOUTPUT_SYSTEMID,
-		'http://pvoutput.org/service/r1/addstatus.jsp']
+		'http://pvoutput.org/service/r2/addstatus.jsp']
 	subprocess.call (cmd)
 
 # Start main loop
