@@ -40,11 +40,11 @@ drv = drv_nrf24l01.CPulseDriver(pulse_ev)
 
 # Start main loop
 time_last_log = time.time()
-event_time = 0
 while True:
-	if pulse_ev.wait(1) == True:
+	event = pulse_ev.wait(1)
+	event_time = time.time()
+	if event == True:
 		pulse_ev.clear()
-		event_time = time.time()
 
 		time_prev_pulse = time_last_pulse
 		time_last_pulse = event_time
