@@ -82,8 +82,8 @@ while not exitFlag:
 		# - The time is a multiple of 5 minutes
 		# - At least 1 minutes have passed
 		if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
-			thread.start_new_thread(WriteToPVOutput, (time_last_pulse, pulse_counter_logged, power_max))
-			logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter_logged, power_max))
+			thread.start_new_thread(WriteToPVOutput, (time_last_pulse, pulse_counter, power_max))
+			logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter, power_max))
 
 			pulse_counter_logged = pulse_counter
 			power_max = 0
