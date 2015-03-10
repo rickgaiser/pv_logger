@@ -56,6 +56,15 @@ def WriteToPVOutput(dt, wh, wmax):
 		'http://pvoutput.org/service/r2/addstatus.jsp']
 	subprocess.call (cmd)
 
+# Write to emoncms.org
+def WriteToEmoncms(wh, power):
+	cmd = ['/usr/bin/curl',
+		'http://emoncms.org/input/post.json?json={{wh:{0}}}&apikey={1}'.format(wh,EMONCMS_APIKEY)]
+	subprocess.call (cmd)
+	cmd = ['/usr/bin/curl',
+		'http://emoncms.org/input/post.json?json={{power:{0:.0f}}}&apikey={1}'.format(power,EMONCMS_APIKEY)]
+	subprocess.call (cmd)
+
 # Start main loop
 time_last_log = time.time()
 exitFlag = False
@@ -74,6 +83,7 @@ while not exitFlag:
 				power = (3600 / time_elapsed)
 				if power > power_max:
 					power_max = power
+				thread.start_new_thread(WriteToEmoncms, (pulse_counter, power))
 				logger.info("{0}Wh: {1:.2f}sec = {2:.0f}Watt".format(pulse_counter, time_elapsed, power))
 			else:
 				logger.info("{0}Wh".format(pulse_counter))
