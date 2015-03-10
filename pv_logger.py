@@ -13,6 +13,7 @@ time_last_pulse = 0
 time_prev_pulse = 0
 pulse_counter = 0
 pulse_counter_logged = 0
+power = 0
 power_max = 0
 
 # Create logger
@@ -77,20 +78,19 @@ while not exitFlag:
 			else:
 				logger.info("{0}Wh".format(pulse_counter))
 
-		# Log if:
-		# - There is new energy data
-		# - The time is a multiple of 5 minutes
-		# - At least 1 minutes have passed
-		if (pulse_counter > pulse_counter_logged) and ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
-			thread.start_new_thread(WriteToPVOutput, (time_last_pulse, pulse_counter, power_max))
-			logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter, power_max))
+		# Try to log every 5 minutes
+		if ((time.localtime(event_time).tm_min % 5) == 0) and ((event_time - time_last_log) > (1*60)):
+			# Log only when new data is available
+			if (pulse_counter > pulse_counter_logged):
+				thread.start_new_thread(WriteToPVOutput, (time_last_pulse, pulse_counter, power_max))
+				logger.info('Upload to PVOutput: {0}Wh, {1:.0f}W piek'.format(pulse_counter, power_max))
 
-			pulse_counter_logged = pulse_counter
-			power_max = 0
+				pulse_counter_logged = pulse_counter
+				power_max = 0
+
 			time_last_log = event_time
 
-		# End of day if:
-		# - No enery for more than 1 hour
+		# End of day if no enery for more than 1 hour
 		if (pulse_counter > 0) and ((event_time - time_last_log) > (60*60)):
 			pulse_counter = 0
 			pulse_counter_logged = 0
