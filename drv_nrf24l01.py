@@ -3,6 +3,7 @@ import time
 from struct import *
 from RF24 import *
 from RF24Network import *
+from emoncms import *
 
 this_node = 00
 other_node = 01
@@ -37,6 +38,7 @@ class CPulseDriver(threading.Thread):
 				value = payload[2]
 				node = 'Node{}.{}'.format(oct(header.from_node), name)
 				print '{}: {} = {}'.format(millis, node, value)
+				WriteToEmoncms(node, value)
 				if node == 'Node01.CNT0':
 					self.ev.set()
 			time.sleep(0.1)
