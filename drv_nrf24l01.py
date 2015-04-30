@@ -30,10 +30,15 @@ class CPulseDriver(threading.Thread):
 		while not self.exitFlag:
 			self.network.update()
 			while self.network.available():
-				header, payload_raw = self.network.read(4)
-				#payload = unpack('<i', payload_raw)
-				#print 'Pulse, Power: ', payload[0], 'wh, from ', oct(header.from_node)
-				self.ev.set()
+				header, payload_raw = self.network.read(12)
+				payload = unpack('<4sLL', payload_raw)
+				name = payload[0]
+				millis = payload[1]
+				value = payload[2]
+				node = 'Node{}.{}'.format(oct(header.from_node), name)
+				print '{}: {} = {}'.format(millis, node, value)
+				if node == 'Node01.CNT0':
+					self.ev.set()
 			time.sleep(0.1)
 
 #Simple test
