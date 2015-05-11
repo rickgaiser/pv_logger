@@ -64,6 +64,7 @@ def WriteToEmoncms_wh(wh, power):
 
 # Start main loop
 time_last_log = time.time()
+time_last_pulse = time.time()
 exitFlag = False
 while not exitFlag:
 	try:
@@ -98,7 +99,7 @@ while not exitFlag:
 			time_last_log = event_time
 
 		# End of day if no enery for more than 1 hour
-		if (pulse_counter > 0) and ((event_time - time_last_log) > (60*60)):
+		if (pulse_counter > 0) and ((event_time - time_last_pulse) > (60*60)):
 			pulse_counter = 0
 			pulse_counter_logged = 0
 			time_prev_pulse = 0
